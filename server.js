@@ -3,37 +3,26 @@ const cors = require('cors');
 
 const app = express();
 
-console.log('Starting server initialization...');
+// Starting log
+console.log('Server starting up...');
 
-// More permissive CORS settings
+// CORS configuration
 app.use(cors({
   origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true,
+  optionsSuccessStatus: 204
 }));
-
-// Request logging middleware
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  next();
-});
 
 app.use(express.json());
 
-// Basic health check
+// Basic route to verify server is running
 app.get('/', (req, res) => {
-  console.log('Health check endpoint hit');
   res.json({ 
-    status: 'Server is running',
-    timestamp: new Date(),
-    port: process.env.PORT || 3001
+    status: 'active',
+    message: 'Server is running',
+    timestamp: new Date().toISOString()
   });
-});
-
-// Test endpoint
-app.get('/test', (req, res) => {
-  res.json({ message: 'Test endpoint working' });
 });
 
 // In-memory storage
@@ -47,25 +36,21 @@ const QUOTES = [
   { text: "Life must be understood backward. But it must be lived forward", author: "Søren Kierkegaard" }
 ];
 
+// Routes with logging
 app.get('/api/quotes/random', (req, res) => {
-  console.log('Random quote endpoint hit');
-  try {
-    const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-    console.log('Sending quote:', quote);
-    res.json(quote);
-  } catch (error) {
-    console.error('Error in /api/quotes/random:', error);
-    res.status(500).json({ error: 'Failed to get quote', details: error.message });
-  }
+  console.log('Random quote requested');
+  const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  console.log('Sending quote:', quote);
+  res.json(quote);
 });
 
 app.get('/api/goals', (req, res) => {
-  console.log('Goals endpoint hit. Current goals:', goals.length);
+  console.log('Goals requested');
   res.json(goals);
 });
 
 app.post('/api/goals', (req, res) => {
-  console.log('Received new goal:', req.body);
+  console.log('New goal received:', req.body);
   const goal = {
     id: Date.now().toString(),
     title: req.body.title,
@@ -74,38 +59,20 @@ app.post('/api/goals', (req, res) => {
     createdAt: new Date()
   };
   goals.unshift(goal);
-  console.log('Added new goal. Total goals:', goals.length);
   res.json(goal);
 });
 
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
-  console.error('Error in middleware:', err);
-  res.status(500).json({ 
-    error: 'Internal Server Error', 
-    message: err.message,
-    timestamp: new Date()
-  });
+  console.error('Error:', err);
+  res.status(500).json({ error: 'Server error', details: err.message });
 });
 
 const PORT = process.env.PORT || 3001;
 
-// Start server with detailed error handling
+// Start server with explicit host binding
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server started successfully`);
-  console.log(`Running on port: ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(`Current time: ${new Date().toISOString()}`);
-}).on('error', (err) => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
-});
-
-// Handle shutdown gracefully
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received. Shutting down...');
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
+  console.log(`Server is running on port ${PORT}`);
+  console.log('Current time:', new Date().toISOString());
+  console.log('Environment:', process.env.NODE_ENV);
 });
