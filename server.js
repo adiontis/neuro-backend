@@ -3,13 +3,25 @@ const cors = require('cors');
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// More permissive CORS settings for development
+app.use(cors({
+  origin: '*', // Be more specific in production
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
-// Basic health check endpoint
+// Add logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  console.log('Request body:', req.body);
+  next();
+});
+
+// Test endpoint
 app.get('/', (req, res) => {
-  res.send('Server is running');
+  res.json({ message: 'Server is running' });
 });
 
 // In-memory storage
@@ -23,12 +35,13 @@ const QUOTES = [
   { text: "Life must be understood backward. But it must be lived forward", author: "Søren Kierkegaard" }
 ];
 
-// Routes
 app.get('/api/goals', (req, res) => {
+  console.log('Sending goals:', goals);
   res.json(goals);
 });
 
 app.post('/api/goals', (req, res) => {
+  console.log('Received new goal:', req.body);
   const goal = {
     id: Date.now().toString(),
     title: req.body.title,
@@ -37,6 +50,7 @@ app.post('/api/goals', (req, res) => {
     createdAt: new Date()
   };
   goals.unshift(goal);
+  console.log('Added new goal:', goal);
   res.json(goal);
 });
 
@@ -52,15 +66,12 @@ app.put('/api/goals/:id', (req, res) => {
 
 app.get('/api/quotes/random', (req, res) => {
   const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  console.log('Sending quote:', quote);
   res.json(quote);
 });
 
 const PORT = process.env.PORT || 3000;
 
-// Start server with proper error handling
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
-}).on('error', (err) => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
 });
